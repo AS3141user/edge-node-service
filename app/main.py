@@ -1,15 +1,20 @@
-"""Edge Node Service — FastAPI application entry point."""
+"""Edge Node Service — FastAPI entrypoint."""
+from __future__ import annotations
 
 from fastapi import FastAPI
 
+from app.metrics import register_metrics
+
 app = FastAPI(
     title="Edge Node Service",
-    description="Containerised edge sensor-processing service.",
     version="0.1.0",
+    description="Lightweight inference service for edge deployments.",
 )
 
+register_metrics(app)
 
-@app.get("/health")
+
+@app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
-    """Liveness probe. Returns a static OK payload."""
+    """Liveness probe."""
     return {"status": "ok"}

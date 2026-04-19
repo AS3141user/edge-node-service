@@ -21,11 +21,11 @@ Completed practical task submission.
 ```bash
 docker compose up --build
 
-edge-node on http://127.0.0.1:8000
-edge-remote on http://127.0.0.1:8001
-prometheus on http://127.0.0.1:9090
-grafana on http://127.0.0.1:3000
-API
+-`edge-node on http://127.0.0.1:8000`
+-`edge-remote on http://127.0.0.1:8001`
+-`prometheus on http://127.0.0.1:9090`
+-`grafana on http://127.0.0.1:3000`
+## API
 Health check
 curl http://127.0.0.1:8000/health
 Submit a sensor reading

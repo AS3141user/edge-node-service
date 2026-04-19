@@ -26,6 +26,17 @@ REQUEST_LATENCY = Histogram(
     labelnames=("method", "path"),
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
 )
+INFERENCE_LATENCY = Histogram(
+    "inference_duration_seconds",
+    "Model inference latency in seconds (preprocessing excluded).",
+    buckets=(0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5),
+)
+
+PREDICTION_COUNT = Counter(
+    "predictions_total",
+    "Total predictions served, labeled by predicted class.",
+    labelnames=("label",),
+)
 
 
 def register_metrics(app: FastAPI) -> None:

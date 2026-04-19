@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # ---- Copy application code ----
 COPY app ./app
-
+COPY models/ ./models/
 # ---- Runtime config ----
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser \

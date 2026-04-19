@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -28,13 +29,25 @@ def percentile(sorted_values: list[float], p: float) -> float:
     return d0 + d1
 
 
-def single_request(url: str, image_bytes: bytes, timeout: float) -> tuple[bool, float, int]:
+def build_payload(i: int, sensor_id: str, base_value: float) -> dict[str, object]:
+    timestamp = datetime.now(timezone.utc) + timedelta(seconds=i)
+    value = base_value + (i % 10) * 0.5
+
+    return {
+        "sensor_id": sensor_id,
+        "value": value,
+        "timestamp": timestamp.isoformat().replace("+00:00", "Z"),
+    }
+
+
+def single_request(url: str, payload: dict[str, object], timeout: float) -> tuple[bool, float, int]:
     start = time.perf_counter()
 
     try:
         response = requests.post(
             url,
-            files={"file": ("digit.png", image_bytes, "image/png")},
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(payload),
             timeout=timeout,
         )
         latency_ms = (time.perf_counter() - start) * 1000.0
@@ -45,31 +58,28 @@ def single_request(url: str, image_bytes: bytes, timeout: float) -> tuple[bool, 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark the edge-node /predict endpoint.")
-    parser.add_argument("--url", default="http://127.0.0.1:8000/predict", help="Prediction endpoint URL")
-    parser.add_argument("--image", default="digit.png", help="Path to input image")
+    parser = argparse.ArgumentParser(description="Benchmark the edge-node /data endpoint.")
+    parser.add_argument("--url", default="http://127.0.0.1:8000/data", help="Processing endpoint URL")
     parser.add_argument("--requests", type=int, default=100, help="Total number of requests")
     parser.add_argument("--concurrency", type=int, default=10, help="Number of parallel workers")
     parser.add_argument("--timeout", type=float, default=10.0, help="Request timeout in seconds")
+    parser.add_argument("--sensor-id", default="temp-01", help="Sensor ID to use in generated payloads")
+    parser.add_argument("--base-value", type=float, default=24.0, help="Starting sensor value")
     args = parser.parse_args()
-
-    image_path = Path(args.image)
-    if not image_path.exists():
-        raise SystemExit(f"Image not found: {image_path}")
-
-    image_bytes = image_path.read_bytes()
 
     latencies: list[float] = []
     success_count = 0
     failure_count = 0
     status_counts: dict[int, int] = {}
 
+    payloads = [build_payload(i, args.sensor_id, args.base_value) for i in range(args.requests)]
+
     overall_start = time.perf_counter()
 
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
         futures = [
-            executor.submit(single_request, args.url, image_bytes, args.timeout)
-            for _ in range(args.requests)
+            executor.submit(single_request, args.url, payload, args.timeout)
+            for payload in payloads
         ]
 
         for future in as_completed(futures):
@@ -89,9 +99,9 @@ def main() -> None:
 
     print("\n=== Benchmark results ===")
     print(f"URL:           {args.url}")
-    print(f"Image:         {image_path}")
     print(f"Requests:      {args.requests}")
     print(f"Concurrency:   {args.concurrency}")
+    print(f"Sensor ID:     {args.sensor_id}")
     print(f"Success:       {success_count}")
     print(f"Failure:       {failure_count}")
     print(f"Total time:    {total_time_s:.3f} s")

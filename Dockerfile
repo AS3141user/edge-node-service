@@ -11,6 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# ---- System packages ----
+# iproute2 gives us `tc` for latency simulation
+RUN apt-get update && apt-get install -y --no-install-recommends iproute2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # ---- Install dependencies first (better layer caching) ----
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

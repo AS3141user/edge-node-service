@@ -17,6 +17,33 @@ services:
       retries: 3
       start_period: 5s
 
+  edge-remote:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: edge-node-service:dev
+    container_name: edge-remote
+    user: root
+    cap_add:
+      - NET_ADMIN
+    command:
+      [
+        "sh",
+        "-c",
+        "tc qdisc add dev eth0 root netem delay 80ms 20ms && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      ]
+    ports:
+      - "8001:8000"
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else sys.exit(1)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: prometheus
@@ -28,6 +55,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
     depends_on:
       - edge-node
+      - edge-remote
     restart: unless-stopped
 
   grafana:

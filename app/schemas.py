@@ -1,13 +1,25 @@
-"""Pydantic response schemas."""
 from __future__ import annotations
+
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 
-class PredictionResponse(BaseModel):
-    label: int = Field(..., description="Predicted digit class (0–9).")
-    confidence: float = Field(..., ge=0.0, le=1.0)
-    latency_ms: float = Field(..., description="Model inference latency in ms.")
-    probabilities: list[float] = Field(
-        ..., description="Per-class softmax probabilities, index = class."
-    )
+class SensorReading(BaseModel):
+    sensor_id: str = Field(..., min_length=1, description="Unique sensor identifier.")
+    value: float = Field(..., description="Raw sensor reading value.")
+    timestamp: datetime = Field(..., description="Timestamp sent by the sensor.")
+
+
+class ProcessingResponse(BaseModel):
+    sensor_id: str
+    input_value: float
+    received_timestamp: datetime
+    processed_at: datetime
+
+    count: int
+    running_mean: float
+    min_value: float
+    max_value: float
+    anomaly: bool
+    threshold_alert: bool
